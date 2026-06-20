@@ -93,20 +93,25 @@
     async function adminLogin(username, password) {
       const res = await fetch(ADMIN_BASE + '/login.php', {
         method: 'POST',
-        credentials: 'include',
         headers: { 'Content-Type': 'text/plain' }, // OPTIONS preflight avoid karne ke liye (InfinityFree limitation)
         body: JSON.stringify({ username, password })
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Login failed');
+      if (data.token) localStorage.setItem('admin_token', data.token);
       return data;
     }
 
     // Already logged in?
     (async () => {
+      const token = localStorage.getItem('admin_token');
+      if (!token) return;
       try {
-        const res = await fetch(BASE_URL + '/admin/me.php', { credentials: 'include' });
+        const res = await fetch(BASE_URL + '/admin/me.php', {
+          headers: { 'Authorization': 'Bearer ' + token }
+        });
         if (res.ok) window.location.href = '/admin/dashboard.html';
+        else localStorage.removeItem('admin_token');
       } catch {}
     })();
 
