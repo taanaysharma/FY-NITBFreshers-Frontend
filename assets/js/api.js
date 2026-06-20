@@ -3,8 +3,7 @@
 // Bas BASE_URL change karo — baaki sab automatically kaam karega
 // ─────────────────────────────────────────────────────────────
 
-const BASE_URL = 'https://yourdomain.infinityfreeapp.com/userlogin/api';
-// ⚠️ Upar apna InfinityFree domain daalo
+const BASE_URL = 'https://nitbfreshers.42web.io/userlogin/api';
 
 // ─── Core Fetch Helpers ───────────────────────────────────────
 
