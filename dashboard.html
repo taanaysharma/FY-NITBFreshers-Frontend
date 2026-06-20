@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard — NITBFreshers Portal</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: { extend: { fontFamily: { sans: ['Inter', 'sans-serif'] } } }
+    }
+  </script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    .tab-btn.active { @apply bg-blue-600 text-white; }
+    .attendance-bar { transition: width 0.6s ease; }
+    #ticker-text { animation: ticker 20s linear infinite; }
+    @keyframes ticker {
+      0%   { transform: translateX(100%); }
+      100% { transform: translateX(-100%); }
+    }
+  </style>
+</head>
+
+<body class="bg-slate-50 dark:bg-slate-900 min-h-screen text-slate-900 dark:text-white">
+
+  <!-- ── TOP NAV ── -->
+  <nav class="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 sticky top-0 z-50">
+    <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <img src="./assets/images/logo.png" class="h-8 w-auto" alt="Logo">
+        <span class="font-bold text-slate-900 dark:text-white">NITB<span class="text-red-500">Freshers</span></span>
+      </div>
+      <div class="flex items-center gap-3">
+        <!-- Student name -->
+        <span id="navName" class="text-sm font-medium text-slate-600 dark:text-slate-300 hidden sm:block"></span>
+        <!-- Dark mode toggle -->
+        <button onclick="toggleDark()" class="p-2 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors">
+          <i data-lucide="sun" class="w-4 h-4 dark:hidden"></i>
+          <i data-lucide="moon" class="w-4 h-4 hidden dark:block"></i>
+        </button>
+        <!-- Logout -->
+        <button onclick="logout()" class="flex items-center gap-1.5 text-sm font-medium text-slate-500 dark:text-slate-400 hover:text-red-500 transition-colors">
+          <i data-lucide="log-out" class="w-4 h-4"></i>
+          <span class="hidden sm:block">Logout</span>
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ── ANNOUNCEMENT TICKER ── -->
+  <div id="tickerBar" class="hidden bg-blue-600 text-white text-xs py-1.5 overflow-hidden">
+    <div class="whitespace-nowrap" id="ticker-text"></div>
+  </div>
+
+  <!-- ── MAIN ── -->
+  <main class="max-w-6xl mx-auto px-4 py-6">
+
+    <!-- Loading State -->
+    <div id="loadingState" class="flex flex-col items-center justify-center py-24 gap-4">
+      <div class="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+      <p class="text-slate-500 text-sm">Loading your dashboard...</p>
+    </div>
+
+    <!-- Error State -->
+    <div id="errorState" class="hidden flex flex-col items-center justify-center py-24 gap-3">
+      <i data-lucide="wifi-off" class="w-12 h-12 text-slate-300"></i>
+      <p class="text-slate-500">Failed to load dashboard</p>
+      <button onclick="loadDashboard()" class="text-blue-600 text-sm font-medium hover:underline">Try again</button>
+    </div>
+
+    <!-- Dashboard Content -->
+    <div id="dashContent" class="hidden">
+
+      <!-- Welcome + Date -->
+      <div class="mb-6 flex items-start justify-between flex-wrap gap-3">
+        <div>
+          <h1 class="text-2xl font-bold">Hey, <span id="studentName"></span> 👋</h1>
+          <p class="text-slate-500 text-sm mt-0.5">
+            <span id="currentDay"></span> · <span id="currentDate"></span>
+          </p>
+        </div>
+        <div class="text-right">
+          <p class="text-xs text-slate-400">Scholar No.</p>
+          <p class="font-mono font-semibold text-slate-700 dark:text-slate-300" id="scholarNo"></p>
+        </div>
+      </div>
+
+      <!-- ── TABS ── -->
+      <div class="flex gap-2 mb-6 overflow-x-auto pb-1">
+        <button onclick="switchTab('attendance')" id="tab-attendance"
+          class="tab-btn px-4 py-2 rounded-xl text-sm font-semibold whitespace-nowrap transition-colors bg-blue-600 text-white">
+          Attendance
+        </button>
+        <button onclick="switchTab('timetable')" id="tab-timetable"
+          class="tab-btn px-4 py-2 rounded-xl text-sm font-semibold whitespace-nowrap transition-colors bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
+          Timetable
+        </button>
+        <button onclick="switchTab('messages')" id="tab-messages"
+          class="tab-btn px-4 py-2 rounded-xl text-sm font-semibold whitespace-nowrap transition-colors bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
+          Support
+        </button>
+        <button onclick="switchTab('holidays')" id="tab-holidays"
+          class="tab-btn px-4 py-2 rounded-xl text-sm font-semibold whitespace-nowrap transition-colors bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
+          Holidays
+        </button>
+      </div>
+
+      <!-- ── ATTENDANCE TAB ── -->
+      <div id="panel-attendance">
+        <div class="grid gap-4" id="attendanceGrid"></div>
+      </div>
+
+      <!-- ── TIMETABLE TAB ── -->
+      <div id="panel-timetable" class="hidden">
+        <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+          <div class="px-5 py-4 border-b border-slate-100 dark:border-slate-700">
+            <h3 class="font-bold text-slate-900 dark:text-white">Today's Schedule</h3>
+          </div>
+          <div id="timetableList" class="divide-y divide-slate-100 dark:divide-slate-700"></div>
+        </div>
+      </div>
+
+      <!-- ── MESSAGES TAB ── -->
+      <div id="panel-messages" class="hidden">
+        <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700">
+          <div class="px-5 py-4 border-b border-slate-100 dark:border-slate-700">
+            <h3 class="font-bold">Support Chat</h3>
+          </div>
+          <div id="messagesList" class="p-4 space-y-3 max-h-80 overflow-y-auto"></div>
+        </div>
+      </div>
+
+      <!-- ── HOLIDAYS TAB ── -->
+      <div id="panel-holidays" class="hidden">
+        <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+          <div class="px-5 py-4 border-b border-slate-100 dark:border-slate-700">
+            <h3 class="font-bold">Upcoming Holidays</h3>
+          </div>
+          <div id="holidaysList" class="divide-y divide-slate-100 dark:divide-slate-700"></div>
+        </div>
+      </div>
+
+      <!-- ── QUICK LINKS ── -->
+      <div class="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <a href="/study-material.html"
+          class="flex flex-col items-center gap-2 p-4 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 hover:border-blue-300 dark:hover:border-blue-600 transition-all group">
+          <div class="w-10 h-10 bg-blue-50 dark:bg-blue-900/30 rounded-xl flex items-center justify-center group-hover:bg-blue-100 transition-colors">
+            <i data-lucide="book-open" class="w-5 h-5 text-blue-600"></i>
+          </div>
+          <span class="text-xs font-semibold text-slate-700 dark:text-slate-300">Study Material</span>
+        </a>
+        <a href="/pyqs.html"
+          class="flex flex-col items-center gap-2 p-4 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 hover:border-purple-300 dark:hover:border-purple-600 transition-all group">
+          <div class="w-10 h-10 bg-purple-50 dark:bg-purple-900/30 rounded-xl flex items-center justify-center group-hover:bg-purple-100 transition-colors">
+            <i data-lucide="file-text" class="w-5 h-5 text-purple-600"></i>
+          </div>
+          <span class="text-xs font-semibold text-slate-700 dark:text-slate-300">PYQs</span>
+        </a>
+        <a href="/contribute.html"
+          class="flex flex-col items-center gap-2 p-4 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 hover:border-green-300 dark:hover:border-green-600 transition-all group">
+          <div class="w-10 h-10 bg-green-50 dark:bg-green-900/30 rounded-xl flex items-center justify-center group-hover:bg-green-100 transition-colors">
+            <i data-lucide="upload" class="w-5 h-5 text-green-600"></i>
+          </div>
+          <span class="text-xs font-semibold text-slate-700 dark:text-slate-300">Contribute</span>
+        </a>
+        <a href="/change-password.html"
+          class="flex flex-col items-center gap-2 p-4 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 hover:border-orange-300 dark:hover:border-orange-600 transition-all group">
+          <div class="w-10 h-10 bg-orange-50 dark:bg-orange-900/30 rounded-xl flex items-center justify-center group-hover:bg-orange-100 transition-colors">
+            <i data-lucide="key" class="w-5 h-5 text-orange-600"></i>
+          </div>
+          <span class="text-xs font-semibold text-slate-700 dark:text-slate-300">Change Password</span>
+        </a>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Scripts -->
+  <script src="./assets/js/api.js"></script>
+  <script src="./assets/js/auth.js"></script>
+  <script>
+    lucide.createIcons();
+
+    // Dark mode
+    if (localStorage.theme === 'dark') document.documentElement.classList.add('dark');
+
+    function toggleDark() {
+      document.documentElement.classList.toggle('dark');
+      localStorage.theme = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
+    }
+
+    // Active tab tracker
+    let activeTab = 'attendance';
+
+    function switchTab(tab) {
+      const tabs = ['attendance', 'timetable', 'messages', 'holidays'];
+      tabs.forEach(t => {
+        document.getElementById('panel-' + t).classList.toggle('hidden', t !== tab);
+        const btn = document.getElementById('tab-' + t);
+        if (t === tab) {
+          btn.classList.add('bg-blue-600', 'text-white');
+          btn.classList.remove('bg-slate-100', 'dark:bg-slate-700', 'text-slate-600', 'dark:text-slate-300');
+        } else {
+          btn.classList.remove('bg-blue-600', 'text-white');
+          btn.classList.add('bg-slate-100', 'dark:bg-slate-700', 'text-slate-600', 'dark:text-slate-300');
+        }
+      });
+      activeTab = tab;
+    }
+
+    // ── Load Dashboard ────────────────────────────────────────
+    async function loadDashboard() {
+      document.getElementById('loadingState').classList.remove('hidden');
+      document.getElementById('errorState').classList.add('hidden');
+      document.getElementById('dashContent').classList.add('hidden');
+
+      try {
+        // Auth check
+        const user = await requireAuth();
+        if (!user) return;
+
+        // Load data
+        const data = await Dashboard.get();
+
+        // Fill user info
+        document.getElementById('navName').textContent    = data.student.name.split(' ')[0];
+        document.getElementById('studentName').textContent = data.student.name.split(' ')[0];
+        document.getElementById('currentDay').textContent  = data.currentDay;
+        document.getElementById('currentDate').textContent = data.currentDate;
+        document.getElementById('scholarNo').textContent   = data.student.scholar_no;
+
+        // Ticker
+        if (data.announcements && data.announcements.length > 0) {
+          const text = data.announcements.map(a => a.text || a.title || a).join('   •   ');
+          document.getElementById('ticker-text').textContent = '📢 ' + text;
+          document.getElementById('tickerBar').classList.remove('hidden');
+        }
+
+        // Attendance
+        renderAttendance(data.attendance);
+
+        // Timetable
+        renderTimetable(data.timetable);
+
+        // Messages
+        renderMessages(data.messages);
+
+        // Holidays
+        renderHolidays(data.holidays);
+
+        // Show content
+        document.getElementById('loadingState').classList.add('hidden');
+        document.getElementById('dashContent').classList.remove('hidden');
+        lucide.createIcons();
+
+      } catch (err) {
+        document.getElementById('loadingState').classList.add('hidden');
+        document.getElementById('errorState').classList.remove('hidden');
+        lucide.createIcons();
+      }
+    }
+
+    // ── Render Attendance ─────────────────────────────────────
+    function renderAttendance(attendance) {
+      const grid = document.getElementById('attendanceGrid');
+      if (!attendance || attendance.length === 0) {
+        grid.innerHTML = `<div class="text-center py-12 text-slate-400">
+          <i data-lucide="calendar-x" class="w-10 h-10 mx-auto mb-3"></i>
+          <p>No attendance records yet</p>
+        </div>`;
+        return;
+      }
+
+      grid.innerHTML = attendance.map(sub => {
+        const pct   = sub.percentage;
+        const color = pct >= 75 ? 'green' : pct >= 60 ? 'yellow' : 'red';
+        const colorMap = {
+          green:  { bar: 'bg-green-500',  text: 'text-green-600 dark:text-green-400',  bg: 'bg-green-50 dark:bg-green-900/20' },
+          yellow: { bar: 'bg-yellow-500', text: 'text-yellow-600 dark:text-yellow-400', bg: 'bg-yellow-50 dark:bg-yellow-900/20' },
+          red:    { bar: 'bg-red-500',    text: 'text-red-600 dark:text-red-400',       bg: 'bg-red-50 dark:bg-red-900/20' },
+        };
+        const c = colorMap[color];
+
+        return `
+          <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-5">
+            <div class="flex items-center justify-between mb-3">
+              <h3 class="font-semibold text-slate-800 dark:text-white">${sub.subject_name}</h3>
+              <span class="text-lg font-bold ${c.text}">${pct}%</span>
+            </div>
+            <div class="w-full bg-slate-100 dark:bg-slate-700 rounded-full h-2 mb-3">
+              <div class="h-2 rounded-full attendance-bar ${c.bar}" style="width: ${pct}%"></div>
+            </div>
+            <div class="flex items-center justify-between text-xs text-slate-500">
+              <span>${sub.present} Present · ${sub.absent} Absent · ${sub.total} Total</span>
+              <span class="font-medium ${c.text}">
+                ${sub.safe_bunks > 0 ? `${sub.safe_bunks} safe bunks left` : 'No bunks allowed'}
+              </span>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // ── Render Timetable ──────────────────────────────────────
+    function renderTimetable(timetable) {
+      const list = document.getElementById('timetableList');
+      if (!timetable || timetable.length === 0) {
+        list.innerHTML = `<div class="text-center py-10 text-slate-400 text-sm">No classes today 🎉</div>`;
+        return;
+      }
+      list.innerHTML = timetable.map(cls => `
+        <div class="px-5 py-4 flex items-center justify-between">
+          <div>
+            <p class="font-semibold text-slate-800 dark:text-white">${cls.subject}</p>
+            <p class="text-xs text-slate-400 mt-0.5">Room ${cls.room || 'TBA'}</p>
+          </div>
+          <div class="text-right">
+            <p class="text-sm font-medium text-blue-600">${cls.start_time}</p>
+            <p class="text-xs text-slate-400">${cls.end_time}</p>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // ── Render Messages ───────────────────────────────────────
+    function renderMessages(messages) {
+      const list = document.getElementById('messagesList');
+      if (!messages || messages.length === 0) {
+        list.innerHTML = `<p class="text-center text-slate-400 text-sm py-6">No messages yet</p>`;
+        return;
+      }
+      list.innerHTML = messages.map(m => `
+        <div class="flex ${m.from_admin ? 'justify-start' : 'justify-end'}">
+          <div class="max-w-xs px-4 py-2.5 rounded-2xl text-sm ${m.from_admin
+            ? 'bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-white rounded-tl-none'
+            : 'bg-blue-600 text-white rounded-tr-none'}">
+            ${m.message}
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // ── Render Holidays ───────────────────────────────────────
+    function renderHolidays(holidays) {
+      const list = document.getElementById('holidaysList');
+      if (!holidays || holidays.length === 0) {
+        list.innerHTML = `<div class="text-center py-10 text-slate-400 text-sm">No upcoming holidays</div>`;
+        return;
+      }
+      list.innerHTML = holidays.map(h => `
+        <div class="px-5 py-4 flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <div class="w-9 h-9 bg-orange-50 dark:bg-orange-900/30 rounded-xl flex items-center justify-center">
+              <i data-lucide="calendar" class="w-4 h-4 text-orange-500"></i>
+            </div>
+            <p class="font-medium text-slate-800 dark:text-white">${h.name}</p>
+          </div>
+          <p class="text-sm text-slate-500">${h.holiday_date}</p>
+        </div>
+      `).join('');
+    }
+
+    // ── Init ──────────────────────────────────────────────────
+    loadDashboard();
+  </script>
+
+</body>
+</html>

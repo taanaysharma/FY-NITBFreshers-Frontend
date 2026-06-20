@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard — NITBFreshers</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config = { darkMode: 'class' }</script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    .tab-active { @apply bg-blue-600 text-white; }
+  </style>
+</head>
+<body class="bg-slate-900 min-h-screen text-white">
+
+  <!-- NAV -->
+  <nav class="bg-slate-800 border-b border-slate-700 sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+          <i data-lucide="shield" class="w-4 h-4 text-white"></i>
+        </div>
+        <div>
+          <span class="font-bold text-white">Admin Panel</span>
+          <span class="text-slate-400 text-xs ml-2">NITBFreshers Portal</span>
+        </div>
+      </div>
+      <div class="flex items-center gap-3">
+        <span id="adminName" class="text-sm text-slate-400 hidden sm:block"></span>
+        <button onclick="adminLogout()"
+          class="flex items-center gap-1.5 text-sm text-slate-400 hover:text-red-400 transition-colors">
+          <i data-lucide="log-out" class="w-4 h-4"></i>
+          <span class="hidden sm:block">Logout</span>
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <div class="max-w-7xl mx-auto px-4 py-6">
+
+    <!-- Stats Row -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6" id="statsRow">
+      <div class="bg-slate-800 rounded-2xl border border-slate-700 p-5">
+        <p class="text-xs text-slate-400 font-medium mb-1">Total Students</p>
+        <p class="text-2xl font-bold text-white" id="stat-students">—</p>
+      </div>
+      <div class="bg-slate-800 rounded-2xl border border-slate-700 p-5">
+        <p class="text-xs text-slate-400 font-medium mb-1">Pending Uploads</p>
+        <p class="text-2xl font-bold text-yellow-400" id="stat-pending">—</p>
+      </div>
+      <div class="bg-slate-800 rounded-2xl border border-slate-700 p-5">
+        <p class="text-xs text-slate-400 font-medium mb-1">Active Sessions</p>
+        <p class="text-2xl font-bold text-green-400" id="stat-sessions">—</p>
+      </div>
+      <div class="bg-slate-800 rounded-2xl border border-slate-700 p-5">
+        <p class="text-xs text-slate-400 font-medium mb-1">Today's Logins</p>
+        <p class="text-2xl font-bold text-blue-400" id="stat-logins">—</p>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="flex gap-2 mb-6 overflow-x-auto pb-1 flex-wrap">
+      <button onclick="switchTab('uploads')"   id="tab-uploads"   class="admin-tab px-4 py-2 rounded-xl text-sm font-semibold transition-colors bg-blue-600 text-white whitespace-nowrap">Pending Uploads</button>
+      <button onclick="switchTab('students')"  id="tab-students"  class="admin-tab px-4 py-2 rounded-xl text-sm font-semibold transition-colors bg-slate-700 text-slate-300 whitespace-nowrap">Students</button>
+      <button onclick="switchTab('announce')"  id="tab-announce"  class="admin-tab px-4 py-2 rounded-xl text-sm font-semibold transition-colors bg-slate-700 text-slate-300 whitespace-nowrap">Announcements</button>
+      <button onclick="switchTab('support')"   id="tab-support"   class="admin-tab px-4 py-2 rounded-xl text-sm font-semibold transition-colors bg-slate-700 text-slate-300 whitespace-nowrap">Support Chat</button>
+      <button onclick="switchTab('logs')"      id="tab-logs"      class="admin-tab px-4 py-2 rounded-xl text-sm font-semibold transition-colors bg-slate-700 text-slate-300 whitespace-nowrap">Activity Logs</button>
+      <button onclick="switchTab('settings')"  id="tab-settings"  class="admin-tab px-4 py-2 rounded-xl text-sm font-semibold transition-colors bg-slate-700 text-slate-300 whitespace-nowrap">Settings</button>
+    </div>
+
+    <!-- ── PENDING UPLOADS ── -->
+    <div id="panel-uploads">
+      <div class="bg-slate-800 rounded-2xl border border-slate-700 overflow-hidden">
+        <div class="px-5 py-4 border-b border-slate-700 flex items-center justify-between">
+          <h3 class="font-bold">Pending Uploads</h3>
+          <button onclick="loadUploads()" class="text-xs text-blue-400 hover:text-blue-300">Refresh</button>
+        </div>
+        <div id="uploadsList" class="divide-y divide-slate-700">
+          <div class="p-8 text-center text-slate-500">Loading...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── STUDENTS ── -->
+    <div id="panel-students" class="hidden">
+      <div class="bg-slate-800 rounded-2xl border border-slate-700 overflow-hidden">
+        <div class="px-5 py-4 border-b border-slate-700 flex items-center justify-between flex-wrap gap-3">
+          <h3 class="font-bold">Student Management</h3>
+          <input id="studentSearch" oninput="filterStudents()" type="text" placeholder="Search by name or scholar no..."
+            class="px-3 py-1.5 bg-slate-900 border border-slate-600 rounded-lg text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 w-64">
+        </div>
+        <div id="studentsList" class="divide-y divide-slate-700">
+          <div class="p-8 text-center text-slate-500">Loading...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── ANNOUNCEMENTS ── -->
+    <div id="panel-announce" class="hidden">
+      <div class="bg-slate-800 rounded-2xl border border-slate-700 overflow-hidden mb-4">
+        <div class="px-5 py-4 border-b border-slate-700">
+          <h3 class="font-bold">Add Announcement</h3>
+        </div>
+        <div class="p-5 space-y-4">
+          <div>
+            <label class="block text-xs font-medium text-slate-400 mb-1.5">Announcement Text</label>
+            <input id="annText" type="text" placeholder="Type announcement..."
+              class="w-full px-4 py-2.5 bg-slate-900 border border-slate-600 rounded-xl text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+          </div>
+          <div class="flex gap-3">
+            <div class="flex-1">
+              <label class="block text-xs font-medium text-slate-400 mb-1.5">Type</label>
+              <select id="annType" class="w-full px-3 py-2.5 bg-slate-900 border border-slate-600 rounded-xl text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="ticker">Ticker (scrolling)</option>
+                <option value="popup">Popup Notice</option>
+                <option value="banner">Banner</option>
+              </select>
+            </div>
+            <div class="flex-1">
+              <label class="block text-xs font-medium text-slate-400 mb-1.5">Expires</label>
+              <input id="annExpiry" type="date"
+                class="w-full px-3 py-2.5 bg-slate-900 border border-slate-600 rounded-xl text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+          </div>
+          <button onclick="addAnnouncement()"
+            class="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl text-sm transition-colors flex items-center gap-2">
+            <i data-lucide="plus" class="w-4 h-4"></i> Add Announcement
+          </button>
+        </div>
+      </div>
+
+      <div class="bg-slate-800 rounded-2xl border border-slate-700 overflow-hidden">
+        <div class="px-5 py-4 border-b border-slate-700">
+          <h3 class="font-bold">Current Announcements</h3>
+        </div>
+        <div id="annList" class="divide-y divide-slate-700">
+          <div class="p-6 text-center text-slate-500 text-sm">Loading...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── SUPPORT CHAT ── -->
+    <div id="panel-support" class="hidden">
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+
+        <!-- Student list -->
+        <div class="bg-slate-800 rounded-2xl border border-slate-700 overflow-hidden">
+          <div class="px-4 py-3 border-b border-slate-700">
+            <h3 class="font-bold text-sm">Students</h3>
+          </div>
+          <div id="chatStudentList" class="divide-y divide-slate-700 max-h-96 overflow-y-auto">
+            <div class="p-4 text-center text-slate-500 text-sm">Loading...</div>
+          </div>
+        </div>
+
+        <!-- Chat window -->
+        <div class="lg:col-span-2 bg-slate-800 rounded-2xl border border-slate-700 overflow-hidden flex flex-col">
+          <div class="px-4 py-3 border-b border-slate-700">
+            <h3 class="font-bold text-sm" id="chatTitle">Select a student</h3>
+          </div>
+          <div id="chatMessages" class="flex-1 p-4 space-y-3 max-h-80 overflow-y-auto">
+            <p class="text-center text-slate-500 text-sm">Select a student to view messages</p>
+          </div>
+          <div class="p-4 border-t border-slate-700 flex gap-3" id="chatInputArea">
+            <input id="adminReply" type="text" placeholder="Type reply..."
+              class="flex-1 px-4 py-2 bg-slate-900 border border-slate-600 rounded-xl text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-slate-500">
+            <button onclick="sendReply()"
+              class="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-xl transition-colors">
+              <i data-lucide="send" class="w-4 h-4"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── ACTIVITY LOGS ── -->
+    <div id="panel-logs" class="hidden">
+      <div class="bg-slate-800 rounded-2xl border border-slate-700 overflow-hidden">
+        <div class="px-5 py-4 border-b border-slate-700 flex items-center justify-between flex-wrap gap-3">
+          <h3 class="font-bold">Activity Logs</h3>
+          <div class="flex gap-2">
+            <select id="logFilter" onchange="loadLogs()" class="px-3 py-1.5 bg-slate-900 border border-slate-600 rounded-lg text-xs text-white focus:outline-none">
+              <option value="">All Events</option>
+              <option value="LOGIN">Login</option>
+              <option value="LOGOUT">Logout</option>
+              <option value="FILE_ACCESS">File Access</option>
+              <option value="ATTENDANCE">Attendance</option>
+              <option value="PASSWORD_CHANGE">Password Change</option>
+            </select>
+            <button onclick="loadLogs()" class="text-xs text-blue-400 hover:text-blue-300 px-3 py-1.5">Refresh</button>
+          </div>
+        </div>
+        <div id="logsList" class="divide-y divide-slate-700 max-h-[500px] overflow-y-auto">
+          <div class="p-8 text-center text-slate-500">Loading...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── SETTINGS ── -->
+    <div id="panel-settings" class="hidden space-y-4">
+
+      <!-- Maintenance Mode -->
+      <div class="bg-slate-800 rounded-2xl border border-slate-700 p-5">
+        <div class="flex items-center justify-between mb-4">
+          <div>
+            <h3 class="font-bold">Maintenance Mode</h3>
+            <p class="text-xs text-slate-400 mt-0.5">Turn portal ON or OFF for students</p>
+          </div>
+          <label class="relative inline-flex items-center cursor-pointer">
+            <input type="checkbox" id="maintenanceToggle" onchange="toggleMaintenance()" class="sr-only peer">
+            <div class="w-11 h-6 bg-slate-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-red-500"></div>
+          </label>
+        </div>
+        <div id="maintenanceMsg" class="hidden">
+          <input id="maintenanceReason" type="text" placeholder="Reason for maintenance..."
+            class="w-full px-4 py-2.5 bg-slate-900 border border-slate-600 rounded-xl text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-slate-500">
+          <button onclick="saveMaintenance()" class="mt-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-semibold rounded-xl transition-colors">
+            Save & Apply
+          </button>
+        </div>
+      </div>
+
+      <!-- Access Control -->
+      <div class="bg-slate-800 rounded-2xl border border-slate-700 p-5">
+        <h3 class="font-bold mb-1">Access Mode</h3>
+        <p class="text-xs text-slate-400 mb-4">OPEN = all students · STRICT = whitelist only</p>
+        <div class="flex gap-3">
+          <button onclick="setAccessMode('OPEN')" id="mode-OPEN"
+            class="px-4 py-2 rounded-xl text-sm font-semibold border-2 border-green-600 text-green-400 hover:bg-green-900/20 transition-colors">
+            OPEN
+          </button>
+          <button onclick="setAccessMode('STRICT')" id="mode-STRICT"
+            class="px-4 py-2 rounded-xl text-sm font-semibold border-2 border-slate-600 text-slate-400 hover:bg-slate-700 transition-colors">
+            STRICT
+          </button>
+        </div>
+      </div>
+
+      <!-- Change Admin Password -->
+      <div class="bg-slate-800 rounded-2xl border border-slate-700 p-5">
+        <h3 class="font-bold mb-4">Change Admin Password</h3>
+        <div class="space-y-3 max-w-sm">
+          <input id="adminOldPwd" type="password" placeholder="Current password"
+            class="w-full px-4 py-2.5 bg-slate-900 border border-slate-600 rounded-xl text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-slate-500">
+          <input id="adminNewPwd" type="password" placeholder="New password"
+            class="w-full px-4 py-2.5 bg-slate-900 border border-slate-600 rounded-xl text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-slate-500">
+          <input id="adminConfirmPwd" type="password" placeholder="Confirm new password"
+            class="w-full px-4 py-2.5 bg-slate-900 border border-slate-600 rounded-xl text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-slate-500">
+          <div id="pwdMsg" class="hidden text-sm"></div>
+          <button onclick="changeAdminPwd()"
+            class="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl text-sm transition-colors">
+            Update Password
+          </button>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <script src="../assets/js/api.js"></script>
+  <script>
+    lucide.createIcons();
+
+    const ADMIN = BASE_URL + '/admin';
+    let activeTab     = 'uploads';
+    let activeStudent = null;
+    let allStudents   = [];
+
+    // ── Admin API helpers ──────────────────────────────────────
+    async function adminGet(path) {
+      const res = await fetch(ADMIN + path, { credentials: 'include' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Error');
+      return data;
+    }
+
+    async function adminPost(path, body = {}) {
+      const res = await fetch(ADMIN + path, {
+        method: 'POST', credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Error');
+      return data;
+    }
+
+    // ── Auth check ────────────────────────────────────────────
+    async function checkAdminAuth() {
+      try {
+        const data = await adminGet('/me.php');
+        document.getElementById('adminName').textContent = data.username;
+      } catch {
+        window.location.href = '/admin/login.html';
+      }
+    }
+
+    async function adminLogout() {
+      try { await adminPost('/logout.php'); } catch {}
+      window.location.href = '/admin/login.html';
+    }
+
+    // ── Tab switching ──────────────────────────────────────────
+    function switchTab(tab) {
+      const tabs = ['uploads', 'students', 'announce', 'support', 'logs', 'settings'];
+      tabs.forEach(t => {
+        document.getElementById('panel-' + t).classList.toggle('hidden', t !== tab);
+        const btn = document.getElementById('tab-' + t);
+        if (t === tab) {
+          btn.classList.add('bg-blue-600', 'text-white');
+          btn.classList.remove('bg-slate-700', 'text-slate-300');
+        } else {
+          btn.classList.remove('bg-blue-600', 'text-white');
+          btn.classList.add('bg-slate-700', 'text-slate-300');
+        }
+      });
+      activeTab = tab;
+
+      // Lazy load on tab switch
+      if (tab === 'students'  && allStudents.length === 0) loadStudents();
+      if (tab === 'announce')  loadAnnouncements();
+      if (tab === 'support')   loadChatStudents();
+      if (tab === 'logs')      loadLogs();
+      if (tab === 'settings')  loadSettings();
+    }
+
+    // ── UPLOADS ───────────────────────────────────────────────
+    async function loadUploads() {
+      try {
+        const data = await adminGet('/uploads.php');
+        const list = document.getElementById('uploadsList');
+
+        if (!data.uploads || data.uploads.length === 0) {
+          list.innerHTML = `<div class="p-8 text-center text-slate-500 text-sm">No pending uploads 🎉</div>`;
+          document.getElementById('stat-pending').textContent = '0';
+          return;
+        }
+
+        document.getElementById('stat-pending').textContent = data.uploads.length;
+        list.innerHTML = data.uploads.map(u => `
+          <div class="px-5 py-4 flex items-center justify-between gap-4 flex-wrap">
+            <div class="flex items-center gap-3 min-w-0">
+              <div class="w-9 h-9 bg-slate-700 rounded-lg flex items-center justify-center flex-shrink-0">
+                <i data-lucide="file-text" class="w-4 h-4 text-blue-400"></i>
+              </div>
+              <div class="min-w-0">
+                <p class="text-sm font-medium text-white truncate">${u.file_name}</p>
+                <p class="text-xs text-slate-400">${u.subject} · ${u.group_name} · by ${u.uploader_name}</p>
+                <p class="text-xs text-slate-500">${(u.file_size/1024).toFixed(1)} KB · ${u.upload_date}</p>
+              </div>
+            </div>
+            <div class="flex gap-2 flex-shrink-0">
+              <button onclick="reviewUpload(${u.id}, 'approved')"
+                class="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-semibold rounded-lg transition-colors flex items-center gap-1">
+                <i data-lucide="check" class="w-3 h-3"></i> Approve
+              </button>
+              <button onclick="reviewUpload(${u.id}, 'rejected')"
+                class="px-3 py-1.5 bg-red-600/80 hover:bg-red-600 text-white text-xs font-semibold rounded-lg transition-colors flex items-center gap-1">
+                <i data-lucide="x" class="w-3 h-3"></i> Reject
+              </button>
+            </div>
+          </div>
+        `).join('');
+        lucide.createIcons();
+      } catch (err) {
+        document.getElementById('uploadsList').innerHTML = `<div class="p-6 text-center text-red-400 text-sm">${err.message}</div>`;
+      }
+    }
+
+    async function reviewUpload(id, action) {
+      try {
+        await adminPost('/uploads.php', { id, action });
+        loadUploads();
+        loadStats();
+      } catch (err) {
+        alert('Error: ' + err.message);
+      }
+    }
+
+    // ── STUDENTS ──────────────────────────────────────────────
+    async function loadStudents() {
+      try {
+        const data = await adminGet('/users.php');
+        allStudents = data.students || [];
+        document.getElementById('stat-students').textContent = allStudents.length;
+        renderStudents(allStudents);
+      } catch (err) {
+        document.getElementById('studentsList').innerHTML = `<div class="p-6 text-center text-red-400 text-sm">${err.message}</div>`;
+      }
+    }
+
+    function renderStudents(students) {
+      const list = document.getElementById('studentsList');
+      if (!students.length) {
+        list.innerHTML = `<div class="p-8 text-center text-slate-500 text-sm">No students found</div>`;
+        return;
+      }
+      list.innerHTML = students.map(s => `
+        <div class="px-5 py-3.5 flex items-center justify-between gap-3">
+          <div class="flex items-center gap-3">
+            <div class="w-8 h-8 bg-blue-900/40 rounded-full flex items-center justify-center flex-shrink-0">
+              <span class="text-xs font-bold text-blue-400">${s.name[0].toUpperCase()}</span>
+            </div>
+            <div>
+              <p class="text-sm font-medium text-white">${s.name}</p>
+              <p class="text-xs text-slate-400">${s.scholar_no} · ${s.roll_no}</p>
+            </div>
+          </div>
+          <button onclick="resetStudentPwd('${s.scholar_no}', '${s.name}')"
+            class="text-xs text-slate-400 hover:text-yellow-400 transition-colors flex items-center gap-1">
+            <i data-lucide="key" class="w-3 h-3"></i> Reset Pwd
+          </button>
+        </div>
+      `).join('');
+      lucide.createIcons();
+    }
+
+    function filterStudents() {
+      const q = document.getElementById('studentSearch').value.toLowerCase();
+      const filtered = allStudents.filter(s =>
+        s.name.toLowerCase().includes(q) || s.scholar_no.includes(q)
+      );
+      renderStudents(filtered);
+    }
+
+    async function resetStudentPwd(scholarNo, name) {
+      if (!confirm(`Reset password for ${name} to their Scholar Number?`)) return;
+      try {
+        await adminPost('/users.php', { action: 'reset_password', scholar_no: scholarNo });
+        alert(`Password reset successfully for ${name}.`);
+      } catch (err) {
+        alert('Error: ' + err.message);
+      }
+    }
+
+    // ── ANNOUNCEMENTS ─────────────────────────────────────────
+    async function loadAnnouncements() {
+      try {
+        const data = await adminGet('/announcements.php');
+        const list = document.getElementById('annList');
+        if (!data.announcements || !data.announcements.length) {
+          list.innerHTML = `<div class="p-6 text-center text-slate-500 text-sm">No announcements</div>`;
+          return;
+        }
+        list.innerHTML = data.announcements.map(a => `
+          <div class="px-5 py-3.5 flex items-center justify-between gap-3">
+            <div>
+              <p class="text-sm font-medium text-white">${a.title || a.text}</p>
+              <p class="text-xs text-slate-400">${a.type} · ${a.created_at}</p>
+            </div>
+            <button onclick="deleteAnnouncement(${a.id})"
+              class="text-slate-500 hover:text-red-400 transition-colors">
+              <i data-lucide="trash-2" class="w-4 h-4"></i>
+            </button>
+          </div>
+        `).join('');
+        lucide.createIcons();
+      } catch {}
+    }
+
+    async function addAnnouncement() {
+      const text   = document.getElementById('annText').value.trim();
+      const type   = document.getElementById('annType').value;
+      const expiry = document.getElementById('annExpiry').value;
+      if (!text) return;
+      try {
+        await adminPost('/announcements.php', { action: 'add', text, type, expiry });
+        document.getElementById('annText').value = '';
+        loadAnnouncements();
+      } catch (err) { alert(err.message); }
+    }
+
+    async function deleteAnnouncement(id) {
+      if (!confirm('Delete this announcement?')) return;
+      try {
+        await adminPost('/announcements.php', { action: 'delete', id });
+        loadAnnouncements();
+      } catch (err) { alert(err.message); }
+    }
+
+    // ── SUPPORT CHAT ──────────────────────────────────────────
+    async function loadChatStudents() {
+      try {
+        const data = await adminGet('/support.php?action=students');
+        const list = document.getElementById('chatStudentList');
+        if (!data.students || !data.students.length) {
+          list.innerHTML = `<div class="p-4 text-center text-slate-500 text-sm">No messages yet</div>`;
+          return;
+        }
+        list.innerHTML = data.students.map(s => `
+          <button onclick="openChat('${s.scholar_no}', '${s.name}')"
+            class="w-full text-left px-4 py-3 hover:bg-slate-700 transition-colors flex items-center gap-3">
+            <div class="w-8 h-8 bg-blue-900/40 rounded-full flex items-center justify-center flex-shrink-0">
+              <span class="text-xs font-bold text-blue-400">${s.name[0]}</span>
+            </div>
+            <div>
+              <p class="text-sm font-medium text-white">${s.name}</p>
+              <p class="text-xs text-slate-400 truncate">${s.last_message || ''}</p>
+            </div>
+          </button>
+        `).join('');
+      } catch {}
+    }
+
+    async function openChat(scholarNo, name) {
+      activeStudent = scholarNo;
+      document.getElementById('chatTitle').textContent = name;
+      try {
+        const data = await adminGet(`/support.php?action=messages&scholar_no=${scholarNo}`);
+        const msgs = document.getElementById('chatMessages');
+        msgs.innerHTML = (data.messages || []).map(m => `
+          <div class="flex ${m.from_admin ? 'justify-end' : 'justify-start'}">
+            <div class="max-w-xs px-4 py-2.5 rounded-2xl text-sm ${m.from_admin
+              ? 'bg-blue-600 text-white rounded-tr-none'
+              : 'bg-slate-700 text-slate-100 rounded-tl-none'}">
+              ${m.message}
+            </div>
+          </div>
+        `).join('') || '<p class="text-center text-slate-500 text-sm">No messages</p>';
+        msgs.scrollTop = msgs.scrollHeight;
+      } catch {}
+    }
+
+    async function sendReply() {
+      if (!activeStudent) return;
+      const input = document.getElementById('adminReply');
+      const msg   = input.value.trim();
+      if (!msg) return;
+      try {
+        await adminPost('/support.php', { action: 'reply', scholar_no: activeStudent, message: msg });
+        input.value = '';
+        openChat(activeStudent, document.getElementById('chatTitle').textContent);
+      } catch (err) { alert(err.message); }
+    }
+
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Enter' && document.activeElement.id === 'adminReply') sendReply();
+    });
+
+    // ── LOGS ──────────────────────────────────────────────────
+    async function loadLogs() {
+      const filter = document.getElementById('logFilter')?.value || '';
+      try {
+        const data = await adminGet(`/logs.php?event_type=${filter}`);
+        const list = document.getElementById('logsList');
+        if (!data.logs || !data.logs.length) {
+          list.innerHTML = `<div class="p-8 text-center text-slate-500 text-sm">No logs found</div>`;
+          return;
+        }
+        list.innerHTML = data.logs.map(l => `
+          <div class="px-5 py-3 flex items-center gap-3 text-sm">
+            <span class="font-mono text-xs text-slate-500 w-36 flex-shrink-0">${l.event_time}</span>
+            <span class="px-2 py-0.5 rounded text-xs font-semibold ${
+              l.event_type === 'LOGIN'  ? 'bg-green-900/40 text-green-400' :
+              l.event_type === 'LOGOUT' ? 'bg-slate-700 text-slate-400' :
+              'bg-blue-900/40 text-blue-400'
+            }">${l.event_type}</span>
+            <span class="text-slate-300 flex-1">${l.scholar_no}</span>
+            <span class="text-slate-500 text-xs hidden sm:block">${l.ip_address}</span>
+            <span class="text-slate-500 text-xs truncate max-w-xs hidden lg:block">${l.details || ''}</span>
+          </div>
+        `).join('');
+      } catch (err) {
+        document.getElementById('logsList').innerHTML = `<div class="p-6 text-center text-red-400 text-sm">${err.message}</div>`;
+      }
+    }
+
+    // ── SETTINGS ──────────────────────────────────────────────
+    async function loadSettings() {
+      try {
+        const data = await adminGet('/settings.php');
+        if (data.maintenance_mode === 'ON') {
+          document.getElementById('maintenanceToggle').checked = true;
+          document.getElementById('maintenanceMsg').classList.remove('hidden');
+          document.getElementById('maintenanceReason').value = data.maintenance_reason || '';
+        }
+        highlightAccessMode(data.access_mode || 'OPEN');
+      } catch {}
+    }
+
+    function toggleMaintenance() {
+      const on = document.getElementById('maintenanceToggle').checked;
+      document.getElementById('maintenanceMsg').classList.toggle('hidden', !on);
+    }
+
+    async function saveMaintenance() {
+      const on     = document.getElementById('maintenanceToggle').checked;
+      const reason = document.getElementById('maintenanceReason').value.trim();
+      try {
+        await adminPost('/settings.php', { action: 'maintenance', mode: on ? 'ON' : 'OFF', reason });
+        alert('Maintenance mode ' + (on ? 'enabled' : 'disabled'));
+      } catch (err) { alert(err.message); }
+    }
+
+    async function setAccessMode(mode) {
+      try {
+        await adminPost('/settings.php', { action: 'access_mode', mode });
+        highlightAccessMode(mode);
+      } catch (err) { alert(err.message); }
+    }
+
+    function highlightAccessMode(mode) {
+      ['OPEN', 'STRICT'].forEach(m => {
+        const btn = document.getElementById('mode-' + m);
+        if (m === mode) {
+          btn.classList.add(m === 'OPEN' ? 'bg-green-900/30' : 'bg-red-900/30');
+          btn.classList.remove('border-slate-600', 'text-slate-400');
+        } else {
+          btn.classList.remove('bg-green-900/30', 'bg-red-900/30');
+          btn.classList.add('border-slate-600', 'text-slate-400');
+        }
+      });
+    }
+
+    async function changeAdminPwd() {
+      const old  = document.getElementById('adminOldPwd').value;
+      const nw   = document.getElementById('adminNewPwd').value;
+      const conf = document.getElementById('adminConfirmPwd').value;
+      const msg  = document.getElementById('pwdMsg');
+
+      if (nw !== conf) { msg.textContent = 'Passwords do not match.'; msg.className = 'text-sm text-red-400'; msg.classList.remove('hidden'); return; }
+      if (nw.length < 8) { msg.textContent = 'Min 8 characters.'; msg.className = 'text-sm text-red-400'; msg.classList.remove('hidden'); return; }
+
+      try {
+        await adminPost('/settings.php', { action: 'change_password', old_password: old, new_password: nw });
+        msg.textContent = 'Password changed successfully!';
+        msg.className   = 'text-sm text-green-400';
+        msg.classList.remove('hidden');
+        document.getElementById('adminOldPwd').value = '';
+        document.getElementById('adminNewPwd').value = '';
+        document.getElementById('adminConfirmPwd').value = '';
+      } catch (err) {
+        msg.textContent = err.message;
+        msg.className   = 'text-sm text-red-400';
+        msg.classList.remove('hidden');
+      }
+    }
+
+    // ── STATS ─────────────────────────────────────────────────
+    async function loadStats() {
+      try {
+        const data = await adminGet('/stats.php');
+        document.getElementById('stat-students').textContent = data.total_students || '—';
+        document.getElementById('stat-pending').textContent  = data.pending_uploads || '0';
+        document.getElementById('stat-sessions').textContent = data.active_sessions || '0';
+        document.getElementById('stat-logins').textContent   = data.today_logins    || '0';
+      } catch {}
+    }
+
+    // ── INIT ──────────────────────────────────────────────────
+    (async () => {
+      await checkAdminAuth();
+      await loadStats();
+      await loadUploads(); // Default tab
+    })();
+  </script>
+</body>
+</html>

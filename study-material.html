@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Study Material — NITBFreshers</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config = { darkMode: 'class' }</script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>body { font-family: 'Inter', sans-serif; }</style>
+</head>
+<body class="bg-slate-50 dark:bg-slate-900 min-h-screen text-slate-900 dark:text-white">
+
+  <!-- NAV -->
+  <nav class="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 sticky top-0 z-50">
+    <div class="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <a href="/dashboard.html" class="text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors">
+          <i data-lucide="arrow-left" class="w-5 h-5"></i>
+        </a>
+        <img src="./assets/images/logo.png" class="h-7 w-auto" alt="Logo">
+        <span class="font-bold">Study Material</span>
+      </div>
+      <button onclick="toggleDark()" class="p-2 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-300">
+        <i data-lucide="sun" class="w-4 h-4 dark:hidden"></i>
+        <i data-lucide="moon" class="w-4 h-4 hidden dark:block"></i>
+      </button>
+    </div>
+  </nav>
+
+  <main class="max-w-5xl mx-auto px-4 py-6">
+
+    <!-- Breadcrumb -->
+    <div id="breadcrumb" class="flex items-center gap-2 text-sm text-slate-500 mb-6 flex-wrap">
+      <button onclick="goTo('groups')" class="hover:text-blue-600 font-medium transition-colors">Home</button>
+    </div>
+
+    <!-- Loading -->
+    <div id="loadingState" class="flex flex-col items-center justify-center py-20 gap-3">
+      <div class="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+      <p class="text-slate-400 text-sm">Loading...</p>
+    </div>
+
+    <!-- Error -->
+    <div id="errorState" class="hidden text-center py-20">
+      <i data-lucide="folder-x" class="w-12 h-12 text-slate-300 mx-auto mb-3"></i>
+      <p class="text-slate-400" id="errorMsg">Something went wrong</p>
+      <button onclick="reload()" class="mt-3 text-blue-600 text-sm hover:underline">Try again</button>
+    </div>
+
+    <!-- Grid -->
+    <div id="grid" class="hidden grid gap-3"></div>
+
+    <!-- PDF Viewer -->
+    <div id="pdfViewer" class="hidden">
+      <div class="flex items-center justify-between mb-4">
+        <button onclick="closePdf()" class="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-800 dark:hover:text-white transition-colors">
+          <i data-lucide="arrow-left" class="w-4 h-4"></i> Back to files
+        </button>
+        <a id="downloadBtn" href="#" download
+          class="flex items-center gap-2 text-sm font-medium text-blue-600 hover:text-blue-700">
+          <i data-lucide="download" class="w-4 h-4"></i> Download
+        </a>
+      </div>
+      <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+        <iframe id="pdfFrame" src="" class="w-full h-screen rounded-2xl"></iframe>
+      </div>
+    </div>
+
+  </main>
+
+  <script src="./assets/js/api.js"></script>
+  <script src="./assets/js/auth.js"></script>
+  <script>
+    lucide.createIcons();
+    if (localStorage.theme === 'dark') document.documentElement.classList.add('dark');
+    function toggleDark() {
+      document.documentElement.classList.toggle('dark');
+      localStorage.theme = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
+      lucide.createIcons();
+    }
+
+    // ── State ─────────────────────────────────────────────────
+    let state = { group: null, subject: null, folder: null };
+
+    // ── Icons for file types ──────────────────────────────────
+    const extIcon = {
+      pdf:  { icon: 'file-text',      color: 'text-red-500',    bg: 'bg-red-50 dark:bg-red-900/20' },
+      doc:  { icon: 'file-text',      color: 'text-blue-500',   bg: 'bg-blue-50 dark:bg-blue-900/20' },
+      docx: { icon: 'file-text',      color: 'text-blue-500',   bg: 'bg-blue-50 dark:bg-blue-900/20' },
+      ppt:  { icon: 'presentation',   color: 'text-orange-500', bg: 'bg-orange-50 dark:bg-orange-900/20' },
+      pptx: { icon: 'presentation',   color: 'text-orange-500', bg: 'bg-orange-50 dark:bg-orange-900/20' },
+      jpg:  { icon: 'image',          color: 'text-green-500',  bg: 'bg-green-50 dark:bg-green-900/20' },
+      jpeg: { icon: 'image',          color: 'text-green-500',  bg: 'bg-green-50 dark:bg-green-900/20' },
+      png:  { icon: 'image',          color: 'text-green-500',  bg: 'bg-green-50 dark:bg-green-900/20' },
+      txt:  { icon: 'file',           color: 'text-slate-500',  bg: 'bg-slate-50 dark:bg-slate-700' },
+    };
+
+    function getIcon(ext) {
+      return extIcon[ext] || { icon: 'file', color: 'text-slate-500', bg: 'bg-slate-50 dark:bg-slate-700' };
+    }
+
+    // ── Navigation ────────────────────────────────────────────
+    async function goTo(level) {
+      showLoading();
+      try {
+        if (level === 'groups') {
+          state = { group: null, subject: null, folder: null };
+          const data = await Resources.groups();
+          renderGroups(data.groups);
+          updateBreadcrumb();
+        } else if (level === 'subjects') {
+          state.subject = null; state.folder = null;
+          const data = await Resources.subjects(state.group);
+          renderGrid(data.subjects, 'subject', 'book-open', 'text-blue-600', 'bg-blue-50 dark:bg-blue-900/20');
+          updateBreadcrumb();
+        } else if (level === 'folders') {
+          state.folder = null;
+          const data = await Resources.folders(state.group, state.subject);
+          renderGrid(data.folders, 'folder', 'folder', 'text-yellow-600', 'bg-yellow-50 dark:bg-yellow-900/20');
+          updateBreadcrumb();
+        }
+      } catch (err) {
+        showError(err.message);
+      }
+    }
+
+    async function openGroup(group) {
+      state.group = group;
+      await goTo('subjects');
+    }
+
+    async function openSubject(subject) {
+      state.subject = subject;
+      await goTo('folders');
+    }
+
+    async function openFolder(folder) {
+      state.folder = folder;
+      showLoading();
+      try {
+        const data = await Resources.files(state.group, state.subject, folder);
+        renderFiles(data.files);
+        updateBreadcrumb();
+      } catch (err) {
+        showError(err.message);
+      }
+    }
+
+    function openFile(file) {
+      const url = Resources.fileUrl(state.group, state.subject, state.folder, file.name);
+      const ext = file.ext;
+
+      if (ext === 'pdf' || ext === 'jpg' || ext === 'jpeg' || ext === 'png') {
+        // Show inline viewer
+        document.getElementById('grid').classList.add('hidden');
+        document.getElementById('pdfViewer').classList.remove('hidden');
+        document.getElementById('pdfFrame').src = url;
+        document.getElementById('downloadBtn').href = url;
+        document.getElementById('downloadBtn').download = file.name;
+      } else {
+        // Download directly
+        window.open(url, '_blank');
+      }
+    }
+
+    function closePdf() {
+      document.getElementById('pdfViewer').classList.add('hidden');
+      document.getElementById('pdfFrame').src = '';
+      document.getElementById('grid').classList.remove('hidden');
+    }
+
+    // ── Render Functions ──────────────────────────────────────
+
+    function renderGroups(groups) {
+      const grid = document.getElementById('grid');
+      const groupConfig = {
+        MT: { label: 'Mid Term',   color: 'text-purple-600', bg: 'bg-purple-50 dark:bg-purple-900/20', icon: 'calendar' },
+        ST: { label: 'Short Test', color: 'text-green-600',  bg: 'bg-green-50 dark:bg-green-900/20',   icon: 'clock' },
+      };
+
+      grid.className = 'grid gap-4 grid-cols-1 sm:grid-cols-2';
+      grid.innerHTML = groups.map(g => {
+        const cfg = groupConfig[g] || { label: g, color: 'text-blue-600', bg: 'bg-blue-50', icon: 'folder' };
+        return `
+          <button onclick="openGroup('${g}')"
+            class="text-left p-6 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 hover:border-blue-300 dark:hover:border-blue-600 hover:shadow-lg transition-all group">
+            <div class="w-12 h-12 ${cfg.bg} rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+              <i data-lucide="${cfg.icon}" class="w-6 h-6 ${cfg.color}"></i>
+            </div>
+            <h3 class="font-bold text-lg text-slate-800 dark:text-white">${g}</h3>
+            <p class="text-sm text-slate-500 mt-0.5">${cfg.label} Materials</p>
+          </button>
+        `;
+      }).join('');
+
+      showGrid();
+    }
+
+    function renderGrid(items, type, icon, color, bg) {
+      const grid = document.getElementById('grid');
+      const clickFn = type === 'subject' ? 'openSubject' : 'openFolder';
+
+      grid.className = 'grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3';
+      grid.innerHTML = items.map(item => `
+        <button onclick="${clickFn}('${item.replace(/'/g, "\\'")}')"
+          class="text-left p-4 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 hover:border-blue-300 dark:hover:border-blue-600 hover:shadow-md transition-all group flex items-center gap-3">
+          <div class="w-10 h-10 ${bg} rounded-xl flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
+            <i data-lucide="${icon}" class="w-5 h-5 ${color}"></i>
+          </div>
+          <span class="font-semibold text-slate-800 dark:text-white text-sm leading-tight">${item}</span>
+        </button>
+      `).join('');
+
+      showGrid();
+    }
+
+    function renderFiles(files) {
+      const grid = document.getElementById('grid');
+      if (!files || files.length === 0) {
+        grid.className = 'grid';
+        grid.innerHTML = `<div class="text-center py-16 text-slate-400">
+          <i data-lucide="inbox" class="w-10 h-10 mx-auto mb-3"></i>
+          <p>No files in this folder yet</p>
+        </div>`;
+        showGrid();
+        return;
+      }
+
+      grid.className = 'grid gap-2';
+      grid.innerHTML = files.map(file => {
+        const ic = getIcon(file.ext);
+        return `
+          <button onclick='openFile(${JSON.stringify(file)})'
+            class="text-left p-4 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-blue-300 dark:hover:border-blue-600 hover:shadow-md transition-all flex items-center gap-3 group">
+            <div class="w-10 h-10 ${ic.bg} rounded-xl flex items-center justify-center flex-shrink-0">
+              <i data-lucide="${ic.icon}" class="w-5 h-5 ${ic.color}"></i>
+            </div>
+            <div class="flex-1 min-w-0">
+              <p class="font-medium text-slate-800 dark:text-white text-sm truncate">${file.name}</p>
+              <p class="text-xs text-slate-400 mt-0.5">${file.ext.toUpperCase()} · ${file.size}</p>
+            </div>
+            <i data-lucide="chevron-right" class="w-4 h-4 text-slate-300 group-hover:text-blue-500 transition-colors flex-shrink-0"></i>
+          </button>
+        `;
+      }).join('');
+
+      showGrid();
+    }
+
+    // ── Breadcrumb ────────────────────────────────────────────
+    function updateBreadcrumb() {
+      const bc = document.getElementById('breadcrumb');
+      let html = `<button onclick="goTo('groups')" class="hover:text-blue-600 font-medium transition-colors">Home</button>`;
+
+      if (state.group) {
+        html += `<i data-lucide="chevron-right" class="w-3 h-3"></i>
+          <button onclick="goTo('subjects')" class="hover:text-blue-600 transition-colors">${state.group}</button>`;
+      }
+      if (state.subject) {
+        html += `<i data-lucide="chevron-right" class="w-3 h-3"></i>
+          <button onclick="goTo('folders')" class="hover:text-blue-600 transition-colors">${state.subject}</button>`;
+      }
+      if (state.folder) {
+        html += `<i data-lucide="chevron-right" class="w-3 h-3"></i>
+          <span class="text-slate-700 dark:text-slate-300 font-medium">${state.folder}</span>`;
+      }
+
+      bc.innerHTML = html;
+      lucide.createIcons();
+    }
+
+    // ── UI Helpers ────────────────────────────────────────────
+    function showLoading() {
+      document.getElementById('loadingState').classList.remove('hidden');
+      document.getElementById('errorState').classList.add('hidden');
+      document.getElementById('grid').classList.add('hidden');
+      document.getElementById('pdfViewer').classList.add('hidden');
+    }
+    function showGrid() {
+      document.getElementById('loadingState').classList.add('hidden');
+      document.getElementById('errorState').classList.add('hidden');
+      document.getElementById('grid').classList.remove('hidden');
+      lucide.createIcons();
+    }
+    function showError(msg) {
+      document.getElementById('loadingState').classList.add('hidden');
+      document.getElementById('errorState').classList.remove('hidden');
+      document.getElementById('errorMsg').textContent = msg || 'Something went wrong';
+      lucide.createIcons();
+    }
+    function reload() { goTo('groups'); }
+
+    // ── Init ──────────────────────────────────────────────────
+    (async () => {
+      await requireAuth();
+      await goTo('groups');
+    })();
+  </script>
+</body>
+</html>
