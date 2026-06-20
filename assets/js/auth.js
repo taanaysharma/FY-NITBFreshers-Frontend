@@ -1,53 +1,52 @@
 // ─────────────────────────────────────────────────────────────
-// auth.js — Login, logout, aur page guard
-// Har protected page pe include karo
+// auth.js — Token-based login, logout, guard
 // ─────────────────────────────────────────────────────────────
 
-// ─── Guard — Protected pages pe call karo ────────────────────
-// Agar logged in nahi → login page pe bhej do
 async function requireAuth() {
+    const token = getToken();
+    if (!token) {
+        window.location.href = '/index.html';
+        return null;
+    }
+
     try {
         const user = await Auth.me();
-        // User data localStorage mein save karo (fast access ke liye)
         localStorage.setItem('user', JSON.stringify(user));
         return user;
     } catch {
+        clearToken();
         localStorage.removeItem('user');
         window.location.href = '/index.html';
         return null;
     }
 }
 
-// ─── Redirect if already logged in ───────────────────────────
-// Login page pe call karo — agar already logged in → dashboard
 async function redirectIfLoggedIn() {
+    const token = getToken();
+    if (!token) return;
+
     try {
         await Auth.me();
         window.location.href = '/dashboard.html';
     } catch {
-        // Not logged in — login page pe rehne do
+        clearToken();
     }
 }
 
-// ─── Logout ───────────────────────────────────────────────────
 async function logout() {
     try {
         await Auth.logout();
-    } catch {
-        // Error aaye toh bhi logout karo
     } finally {
         localStorage.removeItem('user');
         window.location.href = '/index.html';
     }
 }
 
-// ─── Get current user from localStorage ──────────────────────
 function getUser() {
     const u = localStorage.getItem('user');
     return u ? JSON.parse(u) : null;
 }
 
-// ─── Show error message ───────────────────────────────────────
 function showError(elementId, message) {
     const el = document.getElementById(elementId);
     if (!el) return;
@@ -56,7 +55,6 @@ function showError(elementId, message) {
     setTimeout(() => el.classList.add('hidden'), 5000);
 }
 
-// ─── Show success message ─────────────────────────────────────
 function showSuccess(elementId, message) {
     const el = document.getElementById(elementId);
     if (!el) return;
@@ -65,7 +63,6 @@ function showSuccess(elementId, message) {
     setTimeout(() => el.classList.add('hidden'), 3000);
 }
 
-// ─── Loading button state ─────────────────────────────────────
 function setLoading(btnId, loading, text = 'Loading...') {
     const btn = document.getElementById(btnId);
     if (!btn) return;
