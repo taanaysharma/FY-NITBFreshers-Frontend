@@ -1,9 +1,19 @@
 // ─────────────────────────────────────────────────────────────
-// api.js — Saari fetch() calls yahan hain
-// Bas BASE_URL change karo — baaki sab automatically kaam karega
+// api.js — Token-based auth (no cookies — InfinityFree CORS limitation)
 // ─────────────────────────────────────────────────────────────
 
 const BASE_URL = 'https://nitbfreshers.42web.io/userlogin/api';
+
+// ─── Token Storage Helpers ──────────────────────────────────
+function getToken() {
+    return localStorage.getItem('token');
+}
+function setToken(token) {
+    localStorage.setItem('token', token);
+}
+function clearToken() {
+    localStorage.removeItem('token');
+}
 
 // ─── Core Fetch Helpers ───────────────────────────────────────
 
@@ -11,9 +21,14 @@ async function _get(path, params = {}) {
     const url = new URL(BASE_URL + path);
     Object.entries(params).forEach(([k, v]) => url.searchParams.append(k, v));
 
+    const headers = {};
+    const token = getToken();
+    if (token) headers['Authorization'] = 'Bearer ' + token;
+
     const res = await fetch(url.toString(), {
         method: 'GET',
-        credentials: 'include',
+        headers,
+        // credentials: 'include' — HATAYA GAYA, cookies use nahi ho rahi ab
     });
 
     const data = await res.json();
@@ -22,16 +37,13 @@ async function _get(path, params = {}) {
 }
 
 async function _post(path, body = {}) {
-    // ⚠️ Content-Type 'text/plain' jaan-boojh ke use ho raha hai —
-    // 'application/json' browser se OPTIONS preflight trigger karta hai,
-    // aur InfinityFree ka edge proxy (openresty) preflight ko intercept
-    // karke CORS headers ke bina hi 200 OK bhej deta hai, jisse request fail ho jaati hai.
-    // 'text/plain' ek "simple request" hai — preflight skip ho jaata hai.
-    // PHP side (get_body()) Content-Type ignore karke seedha JSON parse karta hai, toh yeh safe hai.
+    const headers = { 'Content-Type': 'text/plain' }; // Preflight avoid karne ke liye
+    const token = getToken();
+    if (token) headers['Authorization'] = 'Bearer ' + token;
+
     const res = await fetch(BASE_URL + path, {
         method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'text/plain' },
+        headers,
         body: JSON.stringify(body),
     });
 
@@ -41,9 +53,13 @@ async function _post(path, body = {}) {
 }
 
 async function _upload(path, formData) {
+    const headers = {};
+    const token = getToken();
+    if (token) headers['Authorization'] = 'Bearer ' + token;
+
     const res = await fetch(BASE_URL + path, {
         method: 'POST',
-        credentials: 'include',
+        headers,
         body: formData,
     });
 
@@ -54,9 +70,15 @@ async function _upload(path, formData) {
 
 // ─── Auth ─────────────────────────────────────────────────────
 const Auth = {
-    login:  (username, password) => _post('/login.php',  { username, password }),
-    logout: ()                   => _post('/logout.php'),
-    me:     ()                   => _get('/me.php'),
+    login: async (username, password) => {
+        const data = await _post('/login.php', { username, password });
+        if (data.token) setToken(data.token);
+        return data;
+    },
+    logout: async () => {
+        try { await _post('/logout.php'); } finally { clearToken(); }
+    },
+    me: () => _get('/me.php'),
 };
 
 // ─── Dashboard ────────────────────────────────────────────────
@@ -76,8 +98,10 @@ const Resources = {
     subjects: (group)                          => _get('/resources.php', { group }),
     folders:  (group, subject)                 => _get('/resources.php', { group, subject }),
     files:    (group, subject, folder)         => _get('/resources.php', { group, subject, folder }),
-    fileUrl:  (group, subject, folder, file)   =>
-        `${BASE_URL}/resources.php?group=${encodeURIComponent(group)}&subject=${encodeURIComponent(subject)}&folder=${encodeURIComponent(folder)}&file=${encodeURIComponent(file)}`,
+    fileUrl:  (group, subject, folder, file) => {
+        const token = getToken();
+        return `${BASE_URL}/resources.php?group=${encodeURIComponent(group)}&subject=${encodeURIComponent(subject)}&folder=${encodeURIComponent(folder)}&file=${encodeURIComponent(file)}&token=${encodeURIComponent(token)}`;
+    },
 };
 
 // ─── Password ─────────────────────────────────────────────────
