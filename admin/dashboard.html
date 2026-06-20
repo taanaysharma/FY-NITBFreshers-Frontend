@@ -269,18 +269,29 @@
     let activeStudent = null;
     let allStudents   = [];
 
-    // ── Admin API helpers ──────────────────────────────────────
+    // ── Admin API helpers (token-based) ─────────────────────────
+    function getAdminToken() {
+      return localStorage.getItem('admin_token');
+    }
+
     async function adminGet(path) {
-      const res = await fetch(ADMIN + path, { credentials: 'include' });
+      const token = getAdminToken();
+      const res = await fetch(ADMIN + path, {
+        headers: token ? { 'Authorization': 'Bearer ' + token } : {}
+      });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Error');
       return data;
     }
 
     async function adminPost(path, body = {}) {
+      const token = getAdminToken();
+      const headers = { 'Content-Type': 'text/plain' }; // OPTIONS preflight avoid karne ke liye (InfinityFree limitation)
+      if (token) headers['Authorization'] = 'Bearer ' + token;
+
       const res = await fetch(ADMIN + path, {
-        method: 'POST', credentials: 'include',
-        headers: { 'Content-Type': 'text/plain' }, // OPTIONS preflight avoid karne ke liye (InfinityFree limitation)
+        method: 'POST',
+        headers,
         body: JSON.stringify(body)
       });
       const data = await res.json();
@@ -290,16 +301,22 @@
 
     // ── Auth check ────────────────────────────────────────────
     async function checkAdminAuth() {
+      if (!getAdminToken()) {
+        window.location.href = '/admin/login.html';
+        return;
+      }
       try {
         const data = await adminGet('/me.php');
         document.getElementById('adminName').textContent = data.username;
       } catch {
+        localStorage.removeItem('admin_token');
         window.location.href = '/admin/login.html';
       }
     }
 
     async function adminLogout() {
       try { await adminPost('/logout.php'); } catch {}
+      localStorage.removeItem('admin_token');
       window.location.href = '/admin/login.html';
     }
 
