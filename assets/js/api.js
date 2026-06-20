@@ -3,7 +3,7 @@
 // Bas BASE_URL change karo — baaki sab automatically kaam karega
 // ─────────────────────────────────────────────────────────────
 
-const BASE_URL = 'https://nitbfreshers.42web.io/userlogin/api';
+const BASE_URL = 'https://yourdomain.infinityfreeapp.com/userlogin/api';
 // ⚠️ Upar apna InfinityFree domain daalo
 
 // ─── Core Fetch Helpers ───────────────────────────────────────
@@ -23,10 +23,16 @@ async function _get(path, params = {}) {
 }
 
 async function _post(path, body = {}) {
+    // ⚠️ Content-Type 'text/plain' jaan-boojh ke use ho raha hai —
+    // 'application/json' browser se OPTIONS preflight trigger karta hai,
+    // aur InfinityFree ka edge proxy (openresty) preflight ko intercept
+    // karke CORS headers ke bina hi 200 OK bhej deta hai, jisse request fail ho jaati hai.
+    // 'text/plain' ek "simple request" hai — preflight skip ho jaata hai.
+    // PHP side (get_body()) Content-Type ignore karke seedha JSON parse karta hai, toh yeh safe hai.
     const res = await fetch(BASE_URL + path, {
         method: 'POST',
         credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'text/plain' },
         body: JSON.stringify(body),
     });
 
