@@ -280,7 +280,7 @@
     async function adminPost(path, body = {}) {
       const res = await fetch(ADMIN + path, {
         method: 'POST', credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'text/plain' }, // OPTIONS preflight avoid karne ke liye (InfinityFree limitation)
         body: JSON.stringify(body)
       });
       const data = await res.json();
