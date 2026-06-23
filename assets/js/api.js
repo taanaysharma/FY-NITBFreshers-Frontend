@@ -2,7 +2,10 @@
 // api.js — Token-based auth (no cookies — InfinityFree CORS limitation)
 // ─────────────────────────────────────────────────────────────
 
-const BASE_URL = 'https://nitbfreshers.42web.io/userlogin/api';
+const BASE_URL = 'https://nitbfreshers-proxy.nitbfreshers.workers.dev';
+// ⚠️ Upar apna actual Cloudflare Worker URL daalo
+// Format: https://nitbfreshers-proxy.YOURNAME.workers.dev
+// Yeh Cloudflare Workers dashboard mein deploy hone ke baad milega
 
 // ─── Token Storage Helpers ──────────────────────────────────
 function getToken() {
